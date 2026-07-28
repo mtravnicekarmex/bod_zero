@@ -1,4 +1,4 @@
-# agentCodex
+# bod nula agentic workflow
 
 A thin layer over the Codex SDK and the Claude Agent SDK with a shared
 synchronous interface.
