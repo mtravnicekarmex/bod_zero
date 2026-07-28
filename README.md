@@ -1,5 +1,16 @@
 # bod nula agentic workflow
 
+This repository is a periodic snapshot of `agentCodex`
+(github.com/mtravnicekarmex/agentCodex), refreshed manually when the
+framework/governance layer there reaches a stable point. Ongoing framework
+development happens in `agentCodex`, not here — this is the clean "point
+zero" state cloned as the starting point for a new project. `project/`
+holds that new project's actual application code once one is started; the
+rest of this repository (agents, contracts pipeline, memory, principles)
+should otherwise stay untouched, since each cloned copy lives its own
+independent life from here on (see agentCodex's `memory/DECISIONS.md`,
+ADR-020).
+
 A thin layer over the Codex SDK and the Claude Agent SDK with a shared
 synchronous interface.
 
