@@ -1,16 +1,5 @@
-from agent import AgentConfig
-from agent_profile import create_agent
-
-
-def main() -> None:
-    config = AgentConfig.load()
-    with create_agent("architect", config=config) as architect:
-        answer = architect.run_command(
-            "analyze_architecture",
-            task="Review the separation between create_thread() and create_agent().",
-        )
-        print(answer)
-
-
-if __name__ == "__main__":
-    main()
+# Moved to (retired, see chat_architect.py) (see memory/DECISIONS.md, ADR-021).
+#
+# This file is no longer imported anywhere in the project. Please delete it
+# manually (the connected-folder sandbox cannot delete files) — e.g.:
+#   git rm example_architect.py

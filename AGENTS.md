@@ -3,7 +3,6 @@
 - Communicate in Czech during conversation, unless the task says otherwise.
   This rule covers conversation only — written documentation (this file and
   all other `.md` files in the project) is in English.
-- The working directory is the project root.
 - Read related files and the public API before changing code (see
   `PRINCIPLES.md` P7).
 - Keep a unified interface for Codex and Claude wherever possible.
@@ -15,15 +14,28 @@
 - Agents' private profiles, memory, and commands live in `agents/<name>/`.
 - The actual application code being built through this pipeline lives in
   `project/`, kept separate from this agentic framework/governance layer
-  (`agent.py`, `agent_profile.py`, `contract_workflow.py`, `agents/`,
-  `memory/`, `contracts/`, `AGENTS.md`, `PRINCIPLES.md`). This repository
-  itself is the reusable starting state ("point zero") copied for each new
-  project — see ADR-015.
+  (`agents/agent.py`, `agents/agent_profile.py`, `agents/contract_workflow.py`,
+  `agents/git_ops.py`, `agents/pipeline.py`, `agents/<name>/`, `memory/`,
+  `contracts/`, `AGENTS.md`, `PRINCIPLES.md`, and the single root entry
+  point `chat_architect.py` — see ADR-021). This repository itself is the
+  reusable starting state ("point zero") copied for each new project — see
+  ADR-015.
+- The repository root has exactly one `.py` file, `chat_architect.py` —
+  the only way to run the pipeline. Everything else the framework needs is
+  a module under `agents/` (see ADR-021).
+- Once `project/` holds real code (not just a placeholder), contract work
+  is implemented in `project/` by default. Touching the framework layer
+  (`agents/*.py`, `chat_architect.py`) or a governance `.md` file
+  (`AGENTS.md`, `PRINCIPLES.md`, `ROLE.md`, `COMMANDS.md`) is in scope only
+  when the contract explicitly calls for it. Reading files outside
+  `project/` to understand context is always allowed — this restricts
+  writes, not reads. When in doubt, a change outside `project/` needs its
+  own contract point, not silent inclusion (see ADR-022).
 
 ## Naming convention (see ADR-008)
 
 - Directories and source/code files: `lowercase_with_underscores`
-  (e.g. `agent_console.py`, `contract_workflow.py`, `agents/reviewer/`).
+  (e.g. `chat_architect.py`, `agents/contract_workflow.py`, `agents/reviewer/`).
 - Document `.md` files that carry a rule, role, state, or contract (not
   free-form text): `UPPERCASE_WITH_UNDERSCORES.md` (e.g. `ROLE.md`,
   `AGENTS.md`, `MEMORY.md`, `IMPLEMENTATION_CONTRACT_0001.md`). `README.md`

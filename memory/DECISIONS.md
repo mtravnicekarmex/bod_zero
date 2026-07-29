@@ -498,3 +498,165 @@ programmer's work — a concrete implementation of `PRINCIPLES.md` P3
   message at the right point, using a fake in place of `git_ops` (no real
   repository needed for the console-level tests). Verified with
   `py_compile` and a full pytest run (23/23 passing).
+
+## ADR-020: `bod-nula` is a periodic snapshot; `agentCodex` stays the dev repo
+
+Checked whether `github.com/mtravnicekarmex/bod-nula.git` (a separate
+repository the owner pushed a copy of this project's content to, under a
+new name) was a faithful, clonable "point zero" for future projects. It
+was — content was file-for-file identical to `agentCodex` (only the
+README title was intentionally changed) and 23/23 tests passed from a
+fresh clone. Found and fixed the same pre-existing hygiene gap in both
+repositories: `.pytest-tmp/` (25 leftover test-fixture files, `bod-nula`
+only) and `.idea/` (7 files, both repos, including two conflicting
+`.iml` files in `bod-nula` — direct evidence of drift from copying without
+cleanup) were tracked in git despite `.gitignore` never covering them
+(this is revision point 1-2 from the very first review, previously
+deferred). Fixed in both: `.gitignore` now excludes both paths, and the
+already-tracked files were untracked via `git rm -r --cached` (owner
+connected the `bod nula` local folder for direct access, same as
+`agentCodex`, rather than being handed manual commands).
+
+- Decided relationship going forward: `agentCodex` remains the framework's
+  own development repository — this is where governance, principles, and
+  the agentic pipeline itself keep evolving. `bod-nula` is a periodic,
+  manually-refreshed snapshot of `agentCodex`, meant to be cloned as the
+  clean starting point for an actual new project; once cloned for a real
+  project it lives its own independent life (own `.md` files, own memory,
+  no further syncing back). `bod-nula`'s own `README.md` now states this
+  explicitly, pointing back to this ADR.
+- Practical note for future snapshots: refresh `bod-nula` from a clean
+  `agentCodex` state (tests passing, no local IDE/test-run cruft) rather
+  than an arbitrary local checkout, so this specific problem does not
+  recur on the next refresh.
+- A stale `.git/index.lock` was left behind by `git rm --cached` in both
+  local folders (the same mounted-filesystem permission quirk seen before
+  with `rm`/`mv`) — harmless to read-only git commands, but needs manual
+  deletion before the owner's next local `git add`/`commit` in either
+  folder.
+- Confirmed explicitly: this connected `bod nula` folder/repo stays a
+  clean template forever. The first project (and every subsequent one) is
+  started from a fresh, separate clone of `bod-nula` into its own new
+  folder/repo — never by developing directly inside this connected copy.
+- Refresh procedure for future updates (manual, triggered by the owner,
+  not automated — no tooling built for this yet, per P15, until the
+  manual process actually proves painful): (1) confirm `agentCodex` is
+  clean and its tests pass; (2) copy the framework/governance layer from
+  `agentCodex` into the connected `bod nula` folder, excluding `.git/`,
+  `.venv/`, cache directories, `.idea/`, `.env`, and `project/` (which
+  stays the empty placeholder in `bod-nula` regardless of what
+  `agentCodex`'s own `project/` contains by then); (3) manually reapply
+  `bod-nula`'s two deliberate differences from `agentCodex` (the README
+  title and this ADR's snapshot-role note), since the copy would otherwise
+  overwrite them; (4) the owner reviews the diff and commits/pushes
+  `bod-nula` themselves, same as today.
+
+## ADR-021: Root directory decluttered to one entry point; framework code moved into agents/
+
+Per the owner's direction: the repository root should hold exactly one
+`.py` file — the one used to open a window onto the architect — with
+everything else the framework needs living under `agents/`. The owner
+also no longer wants a multi-agent console; going forward they only ever
+talk to the architect directly, with the reviewer and programmer working
+purely as internal pipeline agents.
+
+- Moved into a new `agents` Python package (new `agents/__init__.py`,
+  alongside the existing per-role profile directories
+  `agents/architect/`, `agents/reviewer/`, `agents/programmer/`, which are
+  data directories, not Python modules, and coexist without conflict):
+  `agents/agent.py` (from root `agent.py`), `agents/agent_profile.py`
+  (from root `agent_profile.py`, import updated to `from .agent import
+  ...`), `agents/contract_workflow.py` (from root `contract_workflow.py`,
+  unchanged otherwise), `agents/git_ops.py` (from root `git_ops.py`,
+  unchanged).
+- Fixed a real bug the move would otherwise have introduced:
+  `agent.py`'s `WORKSPACE = Path(__file__).parent.resolve()` assumed the
+  file lives at the repository root. Moved one level down into
+  `agents/agent.py`, that same expression would have resolved to
+  `agents/` instead of the actual project root — silently breaking every
+  default (`.env` lookup, agent profile directories, provider `cwd`).
+  Fixed to `Path(__file__).parent.parent.resolve()`.
+- New `agents/pipeline.py` absorbs `agent_console.py`'s orchestration
+  logic verbatim (`create_contract`, `revise_contract`,
+  `continue_pipeline`, `run_architecture_review`, `implement_next`,
+  `review_next`, `commit_approved_contract`, `print_status`,
+  `show_inbox`), plus two new functions: `status_text()` and
+  `opening_briefing()`, used to ground the new entry point's opening
+  greeting in the real contract queue and the architect's real inbox
+  content, rather than a static or guessed greeting (see below).
+- `agent_console.py` (multi-agent console: `/chat <agent>` switching,
+  direct chat with reviewer/programmer) is retired — no longer part of
+  the intended workflow. `example_architect.py` (a pre-pipeline demo
+  script) is removed — fully superseded by the real pipeline and the new
+  entry point, with no remaining purpose.
+- The single root entry point, `chat_architect.py`, is rewritten: creates
+  all three agents internally (architect, reviewer, programmer — the
+  latter two never exposed for direct chat), sends `opening_briefing()`
+  to the architect as its first message so its opening greeting reflects
+  real state ("what's on the agenda today" grounded in the actual
+  contract queue and inbox, not a guess — see `PRINCIPLES.md` P4/P6),
+  then a plain input loop: free text goes straight to the architect;
+  `/new`, `/revise`, `/work`, `/review`, `/commit`, `/status`, `/inbox`,
+  `/help`, `/exit` remain available alongside the conversation, calling
+  into `agents/pipeline.py`.
+- Tests updated to the new import paths
+  (`agents.agent`, `agents.agent_profile`, `agents.contract_workflow`,
+  `agents.git_ops`); `tests/test_agent_console.py`'s tests moved to new
+  `tests/test_pipeline.py` (importing `agents.pipeline`), plus one new
+  test for `opening_briefing()`. Verified with `py_compile` and a full
+  pytest run (24/24 passing), including confirming
+  `agents.agent.WORKSPACE` resolves to the true project root after the
+  move.
+- The connected-folder sandbox cannot delete files (a known limitation —
+  see the ADR-013-era note on `git rm`/`mv`). The retired root files
+  (`agent.py`, `agent_profile.py`, `contract_workflow.py`, `git_ops.py`,
+  `agent_console.py`, `example_architect.py`, `tests/test_agent_console.py`)
+  were overwritten with a short redirect note each, pointing here and
+  asking the owner to `git rm` them manually.
+- This is `agentCodex`-only for now, per the owner's own framing
+  ("agentCodex jako vývojové repo") — `bod-nula` is refreshed from this
+  state later, following the ADR-020 refresh procedure, once the owner
+  judges the project ready to deploy.
+
+## ADR-022: `project/` is the default write scope once it holds real code
+
+The owner asked for a check: once `bod-nula` is cloned for a new project
+and `project/` starts holding that project's real code, is it clearly
+stated anywhere that contract work is scoped to `project/`, with the
+framework/governance layer only in scope when a contract explicitly calls
+for it? It was not — three places actually said or implied the opposite:
+
+- `AGENTS.md` said "The working directory is the project root," with no
+  mention of `project/` scoping at all.
+- `agents/agent_profile.py`'s `build_agent_instructions()` always injects
+  "Work across the whole project. Do not limit yourself to your own
+  subfolder under `agents/`." into every agent's instructions — read
+  guidance that, unqualified, doubles as write guidance.
+- `agents/architect/ROLE.md` had no scoping statement either, and its
+  "Allowed memory targets" list was already stale (missing
+  `PRINCIPLES.md`, added to the actual `ALLOWED_MEMORY_TARGETS` code list
+  back in ADR-014 but never propagated here).
+
+Fixed, owner confirmed ("ano"):
+
+- `AGENTS.md`: replaced the "working directory is the project root" line
+  with an explicit rule — once `project/` holds real code, contract work
+  is implemented there by default; touching `agents/*.py`,
+  `chat_architect.py`, or a governance `.md` file (`AGENTS.md`,
+  `PRINCIPLES.md`, `ROLE.md`, `COMMANDS.md`) is in scope only when the
+  contract explicitly calls for it; reading outside `project/` for
+  context stays unrestricted — this is a write scope, not a read scope.
+  When in doubt, a change outside `project/` gets its own contract point
+  rather than silent inclusion.
+- `agents/agent_profile.py`: reworded the always-injected "Technical
+  profile" text to split reading (unrestricted, across the whole project)
+  from writing (scoped to `project/` by default, per the same rule as
+  above), so every agent gets this in its instructions regardless of
+  role.
+- `agents/architect/ROLE.md`: added `PRINCIPLES.md` to "Allowed memory
+  targets", matching the code.
+
+Verified: `py_compile` on the touched `.py` files, and a full pytest run
+(24/24 passing; had to pass `--confcutdir=tests` to route around the
+still-unreadable `.pytest-tmp` directory at the repo root — see the open
+git thread below, unrelated to this change).
