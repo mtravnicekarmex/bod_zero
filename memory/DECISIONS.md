@@ -741,3 +741,37 @@ codebase onto this pipeline.
   alone — this reset only changed the owner's local working copy, nothing
   was pushed, so that work stays fully recoverable from git history /
   `origin/master` if ever needed again.
+
+## ADR-025: `commit_and_push()` refuses to push while `origin` is still a template repo
+
+Root cause of the ADR-024 situation: cloning `bod-nula` (or now `bod_zero`)
+for a new project and never redirecting `origin` was only a documented
+step, not enforced anywhere. The pipeline's automatic git checkpoints
+(ADR-019, `commit_and_push()` in `agents/git_ops.py`) push to whatever
+`origin` happens to be — so a forgotten manual step silently sent real
+project work straight back into the template repository. Per
+`PRINCIPLES.md` P4 ("isolation must be structurally tied to the mechanism,
+not just instructed"), a documented step alone was not going to be enough
+a second time.
+
+- Added `TEMPLATE_ORIGINS.md` at the repository root (tracked, one origin
+  URL per line, `#` comments): the list of git remotes considered
+  point-zero templates — currently `bod_zero` and `bod-nula`.
+- `commit_and_push()` now runs `_refuse_template_origin()` after the local
+  commit but before `git push`: reads `TEMPLATE_ORIGINS.md`, resolves the
+  actual `origin` remote URL, normalizes both (case, trailing `/`,
+  trailing `.git`) and raises `RuntimeError` with an actionable message if
+  they match. The local commit still happens either way — only the push
+  is refused, the same as any other push failure (`PRINCIPLES.md` P3: the
+  checkpoint is not lost, the caller just sees the error and stops).
+- If `TEMPLATE_ORIGINS.md` is absent, or `origin` cannot be resolved (no
+  such remote), the check is a silent no-op — existing callers (including
+  the test suite's throwaway repositories) are unaffected.
+- README.md gained a "Starting a new project from this template" section
+  (clone → create a new dedicated repo → `git remote set-url origin
+  <new-repo-url>`); `AGENTS.md` gained the corresponding rule. New tests
+  in `tests/test_git_ops.py` cover both the refusal (local commit made,
+  remote unchanged) and the non-match case (push proceeds normally).
+- This is deliberately generic (a plain list of URLs, not
+  `bod_zero`-specific logic) so any future point-zero snapshot repo can be
+  added to the list without touching code.

@@ -71,6 +71,53 @@ def test_commit_and_push_returns_false_when_nothing_to_commit(tmp_path: Path) ->
     assert committed is False
 
 
+def test_commit_and_push_refuses_when_origin_is_a_template(tmp_path: Path) -> None:
+    repo = init_repo_with_remote(tmp_path)
+    remote_url = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (repo / "TEMPLATE_ORIGINS.md").write_text(f"{remote_url}\n", encoding="utf-8")
+    (repo / "file.txt").write_text("change\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="point-zero template"):
+        commit_and_push(repo, "CONTRACT_0001")
+
+    # The local checkpoint still happened - only the push was refused.
+    log = subprocess.run(
+        ["git", "log", "-1", "--pretty=%s"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert log.stdout.strip() == "CONTRACT_0001"
+
+    remote_log = subprocess.run(
+        ["git", "log", "-1", "--pretty=%s", "origin/main"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert remote_log.stdout.strip() == "init"
+
+
+def test_commit_and_push_allows_when_origin_not_a_template(tmp_path: Path) -> None:
+    repo = init_repo_with_remote(tmp_path)
+    (repo / "TEMPLATE_ORIGINS.md").write_text(
+        "https://github.com/example/other-template.git\n", encoding="utf-8"
+    )
+    (repo / "file.txt").write_text("change\n", encoding="utf-8")
+
+    committed = commit_and_push(repo, "CONTRACT_0001")
+
+    assert committed is True
+
+
 def test_commit_and_push_raises_on_missing_remote(tmp_path: Path) -> None:
     repo = tmp_path / "lonely"
     repo.mkdir()
