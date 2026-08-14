@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import os
 from contextlib import ExitStack
 from pathlib import Path
 
 from agents.agent import AgentConfig, WORKSPACE
 from agents.agent_profile import create_agent
 from agents.contract_workflow import ContractStore
+from agents.git_ops import sync_origin_from_env
 from agents.pipeline import (
     commit_approved_contract,
     create_contract,
@@ -45,6 +47,13 @@ def main(project_root: Path = WORKSPACE) -> None:
     project_root = project_root.resolve()
     config = AgentConfig.load(project_root / ".env")
     store = ContractStore(project_root)
+
+    try:
+        origin_message = sync_origin_from_env(project_root, os.environ.get("GIT_REPO"))
+        if origin_message:
+            print(f"\n{origin_message}\n")
+    except Exception as error:
+        print(f"\nCould not sync origin from GIT_REPO: {error}\n")
 
     with ExitStack() as stack:
         architect = stack.enter_context(

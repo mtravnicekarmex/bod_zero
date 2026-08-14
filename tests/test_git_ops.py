@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from agents.git_ops import commit_and_push
+from agents.git_ops import commit_and_push, sync_origin_from_env
 
 
 def init_repo_with_remote(tmp_path: Path) -> Path:
@@ -116,6 +116,74 @@ def test_commit_and_push_allows_when_origin_not_a_template(tmp_path: Path) -> No
     committed = commit_and_push(repo, "CONTRACT_0001")
 
     assert committed is True
+
+
+def test_sync_origin_from_env_does_nothing_when_git_repo_empty(tmp_path: Path) -> None:
+    repo = init_repo_with_remote(tmp_path)
+
+    assert sync_origin_from_env(repo, None) is None
+    assert sync_origin_from_env(repo, "   ") is None
+
+    origin = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert origin.endswith("remote.git")
+
+
+def test_sync_origin_from_env_redirects_existing_origin(tmp_path: Path) -> None:
+    repo = init_repo_with_remote(tmp_path)
+    new_repo = "https://github.com/example/new-project.git"
+
+    message = sync_origin_from_env(repo, new_repo)
+
+    assert message is not None
+    assert new_repo in message
+    origin = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert origin == new_repo
+
+
+def test_sync_origin_from_env_is_noop_when_already_matching(tmp_path: Path) -> None:
+    repo = init_repo_with_remote(tmp_path)
+    origin = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    assert sync_origin_from_env(repo, origin) is None
+
+
+def test_sync_origin_from_env_adds_origin_when_missing(tmp_path: Path) -> None:
+    repo = tmp_path / "lonely"
+    repo.mkdir()
+    subprocess.run(
+        ["git", "init", "--initial-branch=main"], cwd=repo, check=True, capture_output=True
+    )
+    new_repo = "https://github.com/example/new-project.git"
+
+    message = sync_origin_from_env(repo, new_repo)
+
+    assert message is not None
+    origin = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert origin == new_repo
 
 
 def test_commit_and_push_raises_on_missing_remote(tmp_path: Path) -> None:

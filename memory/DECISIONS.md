@@ -775,3 +775,36 @@ a second time.
 - This is deliberately generic (a plain list of URLs, not
   `bod_zero`-specific logic) so any future point-zero snapshot repo can be
   added to the list without touching code.
+
+## ADR-026: `GIT_REPO` in `.env` auto-redirects `origin` on startup
+
+ADR-025's guard only blocks the mistake; it doesn't make the correct step
+easier. The owner wanted the redirect itself automated rather than a
+manual `git remote set-url` command to remember for every new project.
+
+- Added `GIT_REPO=` to `.env` and `.env.example` (empty by default, left
+  blank in the template itself). `.env` is already per-clone and
+  gitignored, matching how `PROVIDER_*`/`MODEL_*` are already project-local
+  config, not something ADR-025's `TEMPLATE_ORIGINS.md` (which is tracked
+  and shared) could hold.
+- New `sync_origin_from_env(project_root, git_repo)` in `agents/git_ops.py`:
+  no-op if `git_repo` is empty; if `origin` doesn't exist yet, adds it; if
+  it exists and differs (compared with the same normalization as
+  ADR-025's guard), redirects it via `git remote set-url`; no-op if it
+  already matches. Returns a message describing what changed, or `None`.
+- `chat_architect.py::main()` calls it right after `AgentConfig.load()`
+  on every run, using `GIT_REPO` from the now-loaded `.env`, wrapped in a
+  try/except that prints a warning and continues rather than blocking
+  startup — a redirect failure (e.g. an invalid URL) should not prevent
+  talking to the architect, since ADR-025's push-time guard is the actual
+  safety net either way.
+- End-to-end flow for a new project: clone → create a new empty repo →
+  fill in `GIT_REPO` in `.env` → run `chat_architect.py` once (origin
+  redirects itself, printed to confirm) → the pipeline's git checkpoints
+  now push to the right place. Leaving `GIT_REPO` blank is still safe,
+  just inconvenient: ADR-025 keeps blocking pushes to the template until
+  `origin` is redirected, whether that happens via this automation or by
+  hand.
+- New tests in `tests/test_git_ops.py`: empty/blank `git_repo` is a no-op,
+  redirecting an existing mismatched origin, no-op when already matching,
+  and adding `origin` when none exists yet.

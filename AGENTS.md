@@ -23,11 +23,13 @@
 - `source/` holds the original/input source code of an existing project
   being migrated onto this pipeline — read-only reference, never edited
   directly; migrated/new code lands in `project/` instead — see ADR-024.
-- After cloning this template for a new project, `origin` must be
-  redirected to a new, dedicated repository before the pipeline runs —
+- After cloning this template for a new project, fill in `GIT_REPO` in
+  `.env` with that project's own repository — `chat_architect.py`
+  redirects `origin` there automatically on startup (see ADR-026).
   `commit_and_push()` refuses to push while `origin` still matches an
-  entry in `TEMPLATE_ORIGINS.md` (see ADR-025 and the root README's
-  "Starting a new project from this template").
+  entry in `TEMPLATE_ORIGINS.md` regardless (ADR-025), so a forgotten
+  `GIT_REPO` blocks the pipeline instead of pushing into the template —
+  see the root README's "Starting a new project from this template".
 - The repository root has exactly one `.py` file, `chat_architect.py` —
   the only way to run the pipeline. Everything else the framework needs is
   a module under `agents/` (see ADR-021).

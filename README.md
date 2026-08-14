@@ -26,13 +26,16 @@ The project has two API levels:
 
 1. Clone this repository into a new directory.
 2. Create a new, empty, dedicated git repository for the project.
-3. Point `origin` at it: `git remote set-url origin <new-repo-url>`.
+3. Fill in `GIT_REPO=<new-repo-url>` in `.env`.
 
-Step 3 is not just a suggestion: `commit_and_push()` (`agents/git_ops.py`)
-checks `origin` against `TEMPLATE_ORIGINS.md` before every push and
-refuses if it still points at this template — see ADR-025. Skipping step 3
-does not silently work around this; it blocks the pipeline's automatic git
-checkpoints (ADR-019) until `origin` is redirected.
+`chat_architect.py` redirects `origin` to `GIT_REPO` automatically on
+startup (see ADR-026) — no manual `git remote` command needed. Leaving
+`GIT_REPO` empty is not a silent bypass: `commit_and_push()`
+(`agents/git_ops.py`) separately checks `origin` against
+`TEMPLATE_ORIGINS.md` before every push and refuses if it still points at
+this template (ADR-025), so a forgotten step 3 blocks the pipeline's
+automatic git checkpoints (ADR-019) instead of pushing real project work
+back into the template.
 
 ## Installation
 
