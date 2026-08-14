@@ -707,3 +707,37 @@ behavior, and light-path is explicitly for changes that do not (see
 refresh, since every future clone hits this exact code path on its very
 first run. The owner's already-cloned project needs the same one-function
 patch applied by hand, since that folder is not connected here.
+
+## ADR-024: `bod-nula` reset to a clean point-zero template; `source/` added for migrating an existing project
+
+The owner used this specific clone (`bod-nula`) directly for real work —
+`project/` grew a real SMS/Streamlit application through four implemented
+contracts (`CONTRACT_0001`–`CONTRACT_0004`) — instead of cloning it first,
+the way ADR-020 assumes ("each cloned copy lives its own independent
+life"). The owner now wants a genuinely empty starting point again, to
+`git clone` fresh for the next (different) project: migrating an existing
+codebase onto this pipeline.
+
+- Local working tree and history reset to the last commit before
+  `CONTRACT_0001` (`6b7ef57`, the ADR-023 login fix) — framework at its
+  current, most up-to-date state (ADR-021's `agents/` layout,
+  `chat_architect.py` entry point, ADR-022's `project/`-scoping rule,
+  ADR-023's login fix), with no project-specific content: `project/`,
+  `contracts/`, and every `agents/<name>/INBOX.md` /`MEMORY.md`/
+  `WORKING_STATE.md` back to template-empty.
+- Added `source/` at the repository root, per `source/README.md` (using
+  the ADR-015 README standard): holds the original/input source of the
+  project being migrated, copied in as-is and kept untouched — a
+  read-only reference the architect and programmer read while drafting
+  and implementing contracts. `project/` keeps its existing role
+  unchanged (ADR-016): migrated/rewritten code lands there, contract by
+  contract, while `source/` stays exactly as copied in. Referenced from
+  `AGENTS.md`, `README.md`, and `project/README.md`.
+- "Untouched" is a documentation-level convention (`AGENTS.md`), not a
+  technical write restriction — same caveat as ADR-022's `project/`
+  scoping.
+- The real SMS/Streamlit application built on `bod-nula` (`CONTRACT_0001`
+  through `CONTRACT_0004`, still on `origin/master`) was deliberately left
+  alone — this reset only changed the owner's local working copy, nothing
+  was pushed, so that work stays fully recoverable from git history /
+  `origin/master` if ever needed again.

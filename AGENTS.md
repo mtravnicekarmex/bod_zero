@@ -20,6 +20,9 @@
   point `chat_architect.py` — see ADR-021). This repository itself is the
   reusable starting state ("point zero") copied for each new project — see
   ADR-015.
+- `source/` holds the original/input source code of an existing project
+  being migrated onto this pipeline — read-only reference, never edited
+  directly; migrated/new code lands in `project/` instead — see ADR-024.
 - The repository root has exactly one `.py` file, `chat_architect.py` —
   the only way to run the pipeline. Everything else the framework needs is
   a module under `agents/` (see ADR-021).

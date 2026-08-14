@@ -4,10 +4,13 @@
 
 Holds the actual application code for the project this clone of agentCodex
 was set up for — kept separate from the agentic framework/governance layer
-that lives at the repository root (`agent.py`, `agent_profile.py`,
-`contract_workflow.py`, `agents/`, `memory/`, `contracts/`, `AGENTS.md`,
-`PRINCIPLES.md`). Every implementation contract's actual code changes land
-here.
+that lives at the repository root (`chat_architect.py`, `agents/agent.py`,
+`agents/agent_profile.py`, `agents/contract_workflow.py`,
+`agents/git_ops.py`, `agents/pipeline.py`, `agents/<name>/`, `memory/`,
+`contracts/`, `AGENTS.md`, `PRINCIPLES.md`). Every implementation
+contract's actual code changes land here. When migrating an existing
+project, its original source lives in `source/` (untouched, read-only
+reference) — see ADR-024.
 
 ## Current capabilities (v0.1)
 
