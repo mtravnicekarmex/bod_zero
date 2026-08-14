@@ -34,8 +34,8 @@ def sync_origin_from_env(project_root: Path, git_repo: str | None) -> str | None
     Each project's own clone fills in `GIT_REPO` once, after cloning this
     point-zero template — see ADR-026. Called on every startup so filling
     it in is the only manual step; nothing to do if `git_repo` is empty
-    (fresh clone, not configured yet — `TEMPLATE_ORIGINS.md`'s push guard
-    stays the safety net for that case) or already matches `origin`.
+    (fresh clone, not configured yet — `memory/TEMPLATE_ORIGINS.md`'s push
+    guard stays the safety net for that case) or already matches `origin`.
     Returns a human-readable message describing what changed, or None.
     """
     if not git_repo or not git_repo.strip():
@@ -65,11 +65,11 @@ def _refuse_template_origin(project_root: Path) -> None:
     Structural guard, not just a documented step (see PRINCIPLES.md P4) —
     this is the exact mistake that landed real project work on the
     `bod-nula` template repo instead of a dedicated project repo. Silently
-    does nothing if `TEMPLATE_ORIGINS.md` or a git remote named `origin`
-    is missing, so unrelated setups (including the test suite) are
-    unaffected.
+    does nothing if `memory/TEMPLATE_ORIGINS.md` or a git remote named
+    `origin` is missing, so unrelated setups (including the test suite)
+    are unaffected.
     """
-    template_file = project_root / "TEMPLATE_ORIGINS.md"
+    template_file = project_root / "memory" / "TEMPLATE_ORIGINS.md"
     if not template_file.exists():
         return
 
@@ -90,9 +90,11 @@ def _refuse_template_origin(project_root: Path) -> None:
     if _normalize_remote(origin.stdout) in templates:
         raise RuntimeError(
             f"Refusing to push: origin ({origin.stdout.strip()}) is still a "
-            "point-zero template repository listed in TEMPLATE_ORIGINS.md. "
-            "Create a new, dedicated repository for this project and run "
-            "`git remote set-url origin <new-repo-url>` before continuing."
+            "point-zero template repository listed in "
+            "memory/TEMPLATE_ORIGINS.md. Fill in GIT_REPO in .env with a "
+            "new, dedicated repository for this project (or run "
+            "`git remote set-url origin <new-repo-url>` directly) before "
+            "continuing."
         )
 
 

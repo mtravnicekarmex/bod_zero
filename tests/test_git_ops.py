@@ -80,7 +80,8 @@ def test_commit_and_push_refuses_when_origin_is_a_template(tmp_path: Path) -> No
         capture_output=True,
         text=True,
     ).stdout.strip()
-    (repo / "TEMPLATE_ORIGINS.md").write_text(f"{remote_url}\n", encoding="utf-8")
+    (repo / "memory").mkdir()
+    (repo / "memory" / "TEMPLATE_ORIGINS.md").write_text(f"{remote_url}\n", encoding="utf-8")
     (repo / "file.txt").write_text("change\n", encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="point-zero template"):
@@ -108,7 +109,8 @@ def test_commit_and_push_refuses_when_origin_is_a_template(tmp_path: Path) -> No
 
 def test_commit_and_push_allows_when_origin_not_a_template(tmp_path: Path) -> None:
     repo = init_repo_with_remote(tmp_path)
-    (repo / "TEMPLATE_ORIGINS.md").write_text(
+    (repo / "memory").mkdir()
+    (repo / "memory" / "TEMPLATE_ORIGINS.md").write_text(
         "https://github.com/example/other-template.git\n", encoding="utf-8"
     )
     (repo / "file.txt").write_text("change\n", encoding="utf-8")

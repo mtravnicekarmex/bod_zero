@@ -27,12 +27,20 @@
   `.env` with that project's own repository — `chat_architect.py`
   redirects `origin` there automatically on startup (see ADR-026).
   `commit_and_push()` refuses to push while `origin` still matches an
-  entry in `TEMPLATE_ORIGINS.md` regardless (ADR-025), so a forgotten
-  `GIT_REPO` blocks the pipeline instead of pushing into the template —
-  see the root README's "Starting a new project from this template".
+  entry in `memory/TEMPLATE_ORIGINS.md` regardless (ADR-025), so a
+  forgotten `GIT_REPO` blocks the pipeline instead of pushing into the
+  template — see the root README's "Starting a new project from this
+  template".
 - The repository root has exactly one `.py` file, `chat_architect.py` —
   the only way to run the pipeline. Everything else the framework needs is
   a module under `agents/` (see ADR-021).
+- The repository root does not grow new files as the framework grows.
+  `AGENTS.md`, `PRINCIPLES.md`, `README.md`, `AGENTS_SUGGESTIONS.md`,
+  `UPDATE_NOTES.md`, `requirements.txt`, `.env`/`.env.example`, and
+  `chat_architect.py` are the fixed set. A new piece of framework state
+  or config belongs in `memory/` (state, e.g. `TEMPLATE_ORIGINS.md`),
+  under `agents/` (code or agent-specific files), or as a new section in
+  an existing root `.md` file — never a new top-level file (see ADR-027).
 - Once `project/` holds real code (not just a placeholder), contract work
   is implemented in `project/` by default. Touching the framework layer
   (`agents/*.py`, `chat_architect.py`) or a governance `.md` file

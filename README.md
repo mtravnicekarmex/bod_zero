@@ -32,10 +32,10 @@ The project has two API levels:
 startup (see ADR-026) — no manual `git remote` command needed. Leaving
 `GIT_REPO` empty is not a silent bypass: `commit_and_push()`
 (`agents/git_ops.py`) separately checks `origin` against
-`TEMPLATE_ORIGINS.md` before every push and refuses if it still points at
-this template (ADR-025), so a forgotten step 3 blocks the pipeline's
-automatic git checkpoints (ADR-019) instead of pushing real project work
-back into the template.
+`memory/TEMPLATE_ORIGINS.md` before every push and refuses if it still
+points at this template (ADR-025), so a forgotten step 3 blocks the
+pipeline's automatic git checkpoints (ADR-019) instead of pushing real
+project work back into the template.
 
 ## Installation
 

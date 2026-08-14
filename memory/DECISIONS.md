@@ -808,3 +808,32 @@ manual `git remote set-url` command to remember for every new project.
 - New tests in `tests/test_git_ops.py`: empty/blank `git_repo` is a no-op,
   redirecting an existing mismatched origin, no-op when already matching,
   and adding `origin` when none exists yet.
+
+## ADR-027: `TEMPLATE_ORIGINS.md` moved to `memory/`; root stays a fixed set of files
+
+ADR-025 added `TEMPLATE_ORIGINS.md` at the repository root — a new
+top-level file, the same drift ADR-021 already fixed once (decluttering
+the root to a single entry point). New framework state should never
+default to landing in the root just because that is where a related file
+happened to get created.
+
+- Moved `TEMPLATE_ORIGINS.md` to `memory/TEMPLATE_ORIGINS.md` — it is
+  long-term project state (a list of protected git remotes), the same
+  category `memory/` already holds (`DECISIONS.md`, `PROJECT_STATE.md`,
+  `OPEN_TASKS.md`, `CHANGE_LOG.md`), not code or a root governance
+  document like `AGENTS.md`/`PRINCIPLES.md`.
+- `agents/git_ops.py::_refuse_template_origin()` now reads
+  `project_root / "memory" / "TEMPLATE_ORIGINS.md"`; error message and
+  docstrings updated to the new path; `tests/test_git_ops.py` updated to
+  create the file under a `memory/` subdirectory in its throwaway repos.
+- `README.md` and `AGENTS.md` updated to the new path. ADR-025 and
+  ADR-026's own text is left as-is (append-only, same as ADR-010's
+  precedent for ADR-001/ADR-009) — it accurately describes what was
+  decided at the time; this entry is the record of the later move.
+- Added an explicit rule to `AGENTS.md`: the repository root is a fixed
+  set of files (`AGENTS.md`, `PRINCIPLES.md`, `README.md`,
+  `AGENTS_SUGGESTIONS.md`, `UPDATE_NOTES.md`, `requirements.txt`,
+  `.env`/`.env.example`, `chat_architect.py`). New framework state or
+  config goes in `memory/` or `agents/`, or as a new section in an
+  existing root `.md` file — never a new top-level file — so this
+  category of drift does not need rediscovering a third time.
